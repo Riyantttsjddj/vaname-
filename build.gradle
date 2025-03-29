@@ -1,17 +1,16 @@
-pluginManagement {
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.2'
+    }
+}
+
+allprojects {
     repositories {
         google()
         mavenCentral()
     }
 }
-
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-rootProject.name = "DeteksiBenur-Android"
-include ':app'
