@@ -45,8 +45,8 @@ jobs:
           echo "gradle.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service" >> gradle.properties
           echo "gradle.buildScan.termsOfServiceAgree=yes" >> gradle.properties
 
-      - name: Build APK
-        run: ./gradlew assembleDebug --stacktrace --info --no-scan  # Nonaktifkan scan untuk menghindari error
+      - name: Debug Build APK
+        run: ./gradlew assembleDebug --stacktrace --debug  # Menampilkan log debug lebih detail
 
       - name: Verify APK Output
         run: ls -alh app/build/outputs/apk/debug/
