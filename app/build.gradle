@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+    namespace "com.contoh.yoloapp"  // Tambahkan namespace di sini
     compileSdk 34
 
     defaultConfig {
