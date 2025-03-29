@@ -20,12 +20,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
-    // Tambahkan repositories agar tidak terjadi error saat build
-    repositories {
-        google()
-        mavenCentral()
-    }
 }
 
 dependencies {
