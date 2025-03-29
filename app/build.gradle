@@ -24,6 +24,7 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.10.0' // Tambahkan Material Components
     implementation 'org.tensorflow:tensorflow-lite:2.9.0'
     implementation 'org.openpnp:opencv:4.5.1-2' // OpenCV dari MavenCentral
 }
