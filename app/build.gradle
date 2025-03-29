@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace "com.contoh.yoloapp"  // Menambahkan namespace
+    namespace "com.contoh.yoloapp"
     compileSdk 34
 
     defaultConfig {
@@ -25,5 +25,5 @@ android {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'org.tensorflow:tensorflow-lite:2.9.0'
-    implementation 'com.quickbirdstudios:opencv-android:4.5.3' // OpenCV dari JitPack
+    implementation 'org.openpnp:opencv:4.5.1-2' // OpenCV dari MavenCentral
 }
