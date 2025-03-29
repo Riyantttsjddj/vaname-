@@ -31,22 +31,26 @@ jobs:
       - name: Set Up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android SDK dan Build Tools
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
       - name: Debug Gradle Wrapper
         run: ls -alh ./gradlew  # Debugging sebelum build
 
       - name: Grant Execute Permission to Gradle
         run: chmod +x ./gradlew
 
-      - name: Debug Gradle
-        run: ./gradlew help --stacktrace --info  # Menjalankan debug sebelum build
+      - name: Clean Gradle Cache
+        run: ./gradlew clean
 
-      - name: Setujui Gradle Terms of Service
-        run: |
-          echo "gradle.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service" >> gradle.properties
-          echo "gradle.buildScan.termsOfServiceAgree=yes" >> gradle.properties
+      - name: Refresh Gradle Dependencies
+        run: ./gradlew --refresh-dependencies
+
+      - name: Debug Dependencies
+        run: ./gradlew app:dependencies --stacktrace
 
       - name: Debug Build APK
-        run: ./gradlew assembleDebug --stacktrace --debug  # Menampilkan log debug lebih detail
+        run: ./gradlew assembleDebug --stacktrace --debug --info  # Menampilkan log debug lebih detail
 
       - name: Verify APK Output
         run: ls -alh app/build/outputs/apk/debug/
