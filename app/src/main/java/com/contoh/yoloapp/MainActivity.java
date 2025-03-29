@@ -2,11 +2,11 @@ package com.contoh.yoloapp;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceView;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -15,11 +15,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.imgproc.Imgproc;
 import org.tensorflow.lite.Interpreter;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
@@ -51,26 +50,32 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             detectButton.setText(isDetecting ? "Stop Deteksi" : "Mulai Deteksi");
         });
 
+        // Memastikan izin kamera sudah diberikan
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 100);
+        } else {
+            cameraView.enableView();
         }
 
         try {
             tflite = new Interpreter(loadModelFile());
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private MappedByteBuffer loadModelFile() throws Exception {
-        FileInputStream fileInputStream = new FileInputStream(getAssets().openFd("best_model.tflite").getFileDescriptor());
-        FileChannel fileChannel = fileInputStream.getChannel();
-        return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, fileInputStream.available());
+    private MappedByteBuffer loadModelFile() throws IOException {
+        AssetFileDescriptor fileDescriptor = getAssets().openFd("best_model.tflite");
+        FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
+        FileChannel fileChannel = inputStream.getChannel();
+        long startOffset = fileDescriptor.getStartOffset();
+        long declaredLength = fileDescriptor.getDeclaredLength();
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
     }
 
     @Override public void onCameraViewStarted(int width, int height) { }
     @Override public void onCameraViewStopped() { }
-    
+
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat rgba = inputFrame.rgba();
@@ -110,4 +115,16 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
         return benurCount;
     }
-}
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (cameraView != null) {
+            cameraView.disableView();
+        }
+        if (tflite != null) {
+            tflite.close();
+        }
+    }
+        }
+                                                                 
