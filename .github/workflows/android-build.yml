@@ -37,8 +37,13 @@ jobs:
       - name: Grant Execute Permission to Gradle
         run: chmod +x ./gradlew
 
+      - name: Setujui Gradle Terms of Service
+        run: |
+          echo "gradle.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service" >> gradle.properties
+          echo "gradle.buildScan.termsOfServiceAgree=yes" >> gradle.properties
+
       - name: Build APK
-        run: ./gradlew assembleDebug --stacktrace --info --scan  # Build dengan log detail
+        run: ./gradlew assembleDebug --stacktrace --info --no-scan  # Nonaktifkan scan untuk menghindari error
 
       - name: Verify APK Output
         run: ls -alh app/build/outputs/apk/debug/
@@ -48,3 +53,4 @@ jobs:
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+          
