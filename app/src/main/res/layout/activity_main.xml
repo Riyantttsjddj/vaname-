@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    tools:context=".MainActivity">
+
+    <!-- OpenCV Camera View -->
+    <org.opencv.android.JavaCameraView
+        android:id="@+id/camera_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:visibility="visible" />
+
+    <!-- TextView untuk menampilkan jumlah benur -->
+    <TextView
+        android:id="@+id/result_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Jumlah Benur: 0"
+        android:textSize="20sp"
+        android:textColor="@android:color/black"
+        android:padding="16dp"
+        android:layout_gravity="center" />
+
+    <!-- Tombol untuk memulai deteksi -->
+    <Button
+        android:id="@+id/detect_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Deteksi Benur"
+        android:layout_gravity="center" />
+</LinearLayout>
