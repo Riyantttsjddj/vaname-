@@ -1,5 +1,9 @@
+plugins {
+    id 'com.android.application'
+}
+
 android {
-    namespace "com.contoh.yoloapp"
+    namespace "com.contoh.yoloapp"  // Tambahkan namespace
     compileSdk 34
 
     defaultConfig {
@@ -17,8 +21,15 @@ android {
         }
     }
 
+    // Tambahkan repositories agar tidak terjadi error saat build
     repositories {
         google()
         mavenCentral()
     }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'org.tensorflow:tensorflow-lite:2.9.0'
+    implementation 'org.opencv:opencv-android:4.5.1'
 }
