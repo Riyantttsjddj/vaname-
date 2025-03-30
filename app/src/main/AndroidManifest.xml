@@ -2,16 +2,20 @@
     package="com.contoh.yoloapp"
     xmlns:tools="http://schemas.android.com/tools"> <!-- Tambahkan namespace tools -->
 
+    <!-- Izin untuk mengakses kamera -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
 
     <application
         android:allowBackup="true"
         android:theme="@style/Theme.AppCompat.Light"
+        android:usesCleartextTraffic="true" <!-- Izinkan HTTP jika perlu -->
         tools:replace="android:allowBackup"> <!-- Tambahkan tools:replace -->
 
         <activity 
             android:name=".MainActivity"
-            android:exported="true"> <!-- Tambahkan android:exported -->
+            android:exported="true"> <!-- Pastikan android:exported ada untuk API 31+ -->
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
