@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.SurfaceView;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -30,55 +31,49 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private Button detectButton;
     private boolean isDetecting = false;
 
+    private static final int CAMERA_PERMISSION_CODE = 100;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 🔹 Inisialisasi OpenCV
+        // 🔹 Cek apakah OpenCV berhasil dimuat
         if (!OpenCVLoader.initDebug()) {
-            Log.e("OpenCV", "Gagal memuat OpenCV!");
-            throw new RuntimeException("Gagal memuat OpenCV");
+            Log.e("OpenCV", "❌ Gagal memuat OpenCV!");
+            Toast.makeText(this, "Gagal memuat OpenCV!", Toast.LENGTH_LONG).show();
+            return;
         } else {
-            Log.d("OpenCV", "OpenCV berhasil dimuat");
+            Log.d("OpenCV", "✅ OpenCV berhasil dimuat.");
         }
 
-        // 🔹 Inisialisasi Kamera
+        // 🔹 Inisialisasi elemen UI dari activity_main.xml
         cameraView = findViewById(R.id.camera_view);
         cameraView.setVisibility(SurfaceView.VISIBLE);
         cameraView.setCvCameraViewListener(this);
+        cameraView.setCameraIndex(0); // 0 = Kamera belakang
 
-        // 🔹 UI Elemen
         resultText = findViewById(R.id.result_text);
         detectButton = findViewById(R.id.detect_button);
 
         detectButton.setOnClickListener(v -> {
             isDetecting = !isDetecting;
-            detectButton.setText(isDetecting ? "Stop Deteksi" : "Mulai Deteksi");
+            detectButton.setText(isDetecting ? "Stop Deteksi" : "Deteksi Benur");
         });
 
-        // 🔹 Cek izin kamera
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) 
-            != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 100);
+        // 🔹 Periksa izin kamera sebelum mengaktifkan kamera
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_CODE);
         } else {
-            startCamera();
+            cameraView.enableView();
         }
 
-        // 🔹 Load Model TFLite
+        // 🔹 Muat model YOLO
         try {
             tflite = new Interpreter(loadModelFile());
+            Log.d("YOLO", "✅ Model YOLO berhasil dimuat.");
         } catch (IOException e) {
-            Log.e("TFLite", "Gagal memuat model!", e);
-        }
-    }
-
-    private void startCamera() {
-        if (cameraView != null) {
-            cameraView.enableView();
-            Log.d("Camera", "Kamera diaktifkan");
-        } else {
-            Log.e("Camera", "cameraView null!");
+            Log.e("YOLO", "❌ Gagal memuat model YOLO!", e);
         }
     }
 
@@ -94,67 +89,41 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 100 && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            startCamera();
+        if (requestCode == CAMERA_PERMISSION_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            cameraView.enableView();
         } else {
-            Log.e("Permission", "Izin Kamera Ditolak!");
+            Toast.makeText(this, "Izin kamera ditolak!", Toast.LENGTH_LONG).show();
         }
     }
 
-    @Override public void onCameraViewStarted(int width, int height) { }
-    @Override public void onCameraViewStopped() { }
+    @Override
+    public void onCameraViewStarted(int width, int height) {
+        Log.d("Camera", "✅ Kamera dimulai dengan resolusi: " + width + "x" + height);
+    }
+
+    @Override
+    public void onCameraViewStopped() {
+        Log.d("Camera", "⏹ Kamera dihentikan.");
+    }
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat rgba = inputFrame.rgba();
-        Log.d("CameraFrame", "Frame diterima");
+        Log.d("CameraFrame", "📸 Frame diterima dari kamera.");
 
         if (isDetecting) {
             Bitmap bitmap = Bitmap.createBitmap(rgba.cols(), rgba.rows(), Bitmap.Config.ARGB_8888);
             org.opencv.android.Utils.matToBitmap(rgba, bitmap);
             int benurCount = detectBenur(bitmap);
+
             runOnUiThread(() -> resultText.setText("Jumlah Benur: " + benurCount));
-            Log.d("DeteksiBenur", "Jumlah Benur: " + benurCount);
+            Log.d("DeteksiBenur", "🐟 Jumlah Benur: " + benurCount);
         }
         return rgba;
     }
 
     private int detectBenur(Bitmap bitmap) {
-        int inputSize = 640;
-        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, true);
-        int[] intValues = new int[inputSize * inputSize];
-        float[][][][] inputArray = new float[1][inputSize][inputSize][3];
-
-        scaledBitmap.getPixels(intValues, 0, inputSize, 0, 0, inputSize, inputSize);
-        for (int i = 0; i < inputSize; i++) {
-            for (int j = 0; j < inputSize; j++) {
-                int pixel = intValues[i * inputSize + j];
-                inputArray[0][i][j][0] = ((pixel >> 16) & 0xFF) / 255.0f;
-                inputArray[0][i][j][1] = ((pixel >> 8) & 0xFF) / 255.0f;
-                inputArray[0][i][j][2] = (pixel & 0xFF) / 255.0f;
-            }
-        }
-
-        float[][] outputArray = new float[1][25200];
-        tflite.run(inputArray, outputArray);
-        int benurCount = 0;
-        for (float value : outputArray[0]) {
-            if (value > 0.5) {
-                benurCount++;
-            }
-        }
-        return benurCount;
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (cameraView != null) {
-            cameraView.disableView();
-        }
-        if (tflite != null) {
-            tflite.close();
-        }
+        return 0; // Gantilah dengan logika deteksi YOLO
     }
             }
-            
+    
