@@ -34,8 +34,11 @@ jobs:
       - name: Install Android SDK dan Build Tools
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Debug Gradle Wrapper
-        run: ls -alh ./gradlew  # Debugging sebelum build
+      - name: Download OpenCV SDK
+        run: |
+          wget -O opencv-4.11.0-android-sdk.zip https://github.com/opencv/opencv/releases/download/4.11.0/opencv-4.11.0-android-sdk.zip
+          unzip opencv-4.11.0-android-sdk.zip
+          mv OpenCV-android-sdk/sdk opencv
 
       - name: Grant Execute Permission to Gradle
         run: chmod +x ./gradlew
@@ -50,7 +53,7 @@ jobs:
         run: ./gradlew app:dependencies --stacktrace
 
       - name: Debug Build APK
-        run: ./gradlew assembleDebug --stacktrace --debug --info  # Menampilkan log debug lebih detail
+        run: ./gradlew assembleDebug --stacktrace --debug --info
 
       - name: Verify APK Output
         run: ls -alh app/build/outputs/apk/debug/
@@ -60,3 +63,4 @@ jobs:
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+          
