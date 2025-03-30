@@ -15,5 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "DeteksiBenur-Android"
 include ':app'
-include ':opencv'  // Mengubah nama modul menjadi 'opencv'
-project(':opencv').projectDir = new File('opencv/sdk')  // Sesuaikan path dengan lokasi SDK
+include ':opencv'  // Tambahkan modul OpenCV
