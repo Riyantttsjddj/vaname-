@@ -14,8 +14,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.JavaCameraView;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 import org.tensorflow.lite.Interpreter;
 import java.io.FileInputStream;
@@ -24,7 +24,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
-    private CameraBridgeViewBase cameraView;
+    private JavaCameraView cameraView;
     private Interpreter tflite;
     private TextView resultText;
     private Button detectButton;
@@ -35,10 +35,20 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 🔹 Inisialisasi OpenCV
+        if (!OpenCVLoader.initDebug()) {
+            Log.e("OpenCV", "Gagal memuat OpenCV!");
+            throw new RuntimeException("Gagal memuat OpenCV");
+        } else {
+            Log.d("OpenCV", "OpenCV berhasil dimuat");
+        }
+
+        // 🔹 Inisialisasi Kamera
         cameraView = findViewById(R.id.camera_view);
         cameraView.setVisibility(SurfaceView.VISIBLE);
         cameraView.setCvCameraViewListener(this);
 
+        // 🔹 UI Elemen
         resultText = findViewById(R.id.result_text);
         detectButton = findViewById(R.id.detect_button);
 
@@ -47,75 +57,61 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             detectButton.setText(isDetecting ? "Stop Deteksi" : "Mulai Deteksi");
         });
 
-        // Memastikan izin kamera sudah diberikan
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        // 🔹 Cek izin kamera
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) 
+            != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 100);
+        } else {
+            startCamera();
         }
 
+        // 🔹 Load Model TFLite
         try {
             tflite = new Interpreter(loadModelFile());
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e("TFLite", "Gagal memuat model!", e);
         }
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (!OpenCVLoader.initDebug()) {
-            Log.e("OpenCV", "Gagal memuat OpenCV!");
-        } else {
-            Log.d("OpenCV", "OpenCV berhasil dimuat!");
-            if (cameraView != null) {
-                cameraView.enableView();
-            }
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
+    private void startCamera() {
         if (cameraView != null) {
-            cameraView.disableView();
+            cameraView.enableView();
+            Log.d("Camera", "Kamera diaktifkan");
+        } else {
+            Log.e("Camera", "cameraView null!");
         }
+    }
+
+    private MappedByteBuffer loadModelFile() throws IOException {
+        AssetFileDescriptor fileDescriptor = getAssets().openFd("best_model.tflite");
+        FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
+        FileChannel fileChannel = inputStream.getChannel();
+        long startOffset = fileDescriptor.getStartOffset();
+        long declaredLength = fileDescriptor.getDeclaredLength();
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 100 && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            if (cameraView != null) {
-                cameraView.enableView();
-            }
+            startCamera();
         } else {
-            Log.e("Izin Kamera", "Akses kamera ditolak!");
+            Log.e("Permission", "Izin Kamera Ditolak!");
         }
     }
 
-    private MappedByteBuffer loadModelFile() throws IOException {
-        AssetFileDescriptor fileDescriptor = getAssets().openFd("best_model.tflite");
-        try (FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
-             FileChannel fileChannel = inputStream.getChannel()) {
-            long startOffset = fileDescriptor.getStartOffset();
-            long declaredLength = fileDescriptor.getDeclaredLength();
-            return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
-        }
-    }
-
-    @Override
-    public void onCameraViewStarted(int width, int height) { }
-
-    @Override
-    public void onCameraViewStopped() { }
+    @Override public void onCameraViewStarted(int width, int height) { }
+    @Override public void onCameraViewStopped() { }
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat rgba = inputFrame.rgba();
-        if (rgba.empty()) return rgba; // Hindari error jika frame kosong
+        Log.d("CameraFrame", "Frame diterima");
 
         if (isDetecting) {
             Bitmap bitmap = Bitmap.createBitmap(rgba.cols(), rgba.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(rgba, bitmap);
+            org.opencv.android.Utils.matToBitmap(rgba, bitmap);
             int benurCount = detectBenur(bitmap);
             runOnUiThread(() -> resultText.setText("Jumlah Benur: " + benurCount));
             Log.d("DeteksiBenur", "Jumlah Benur: " + benurCount);
@@ -139,11 +135,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             }
         }
 
-        float[][][] outputArray = new float[1][25200][6]; // [batch, jumlah prediksi, 6 atribut]
+        float[][] outputArray = new float[1][25200];
         tflite.run(inputArray, outputArray);
         int benurCount = 0;
-        for (float[] detection : outputArray[0]) {
-            if (detection[4] > 0.5) { // Confidence threshold
+        for (float value : outputArray[0]) {
+            if (value > 0.5) {
                 benurCount++;
             }
         }
@@ -160,5 +156,5 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             tflite.close();
         }
     }
-        }
+            }
             
